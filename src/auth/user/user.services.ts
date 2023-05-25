@@ -17,7 +17,7 @@ export class UserService {
     }
 
     async exisitsByEmail(email : String) : Promise<boolean>{
-        const result = await this.userModel.find({email});
+        const result = await this.userModel.findOne({email});
 
         if(result){
             return true;
