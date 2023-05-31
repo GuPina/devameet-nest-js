@@ -7,6 +7,7 @@ import { Position, PositionDocument } from './Schemas/positions.schemas';
 import { UserService } from 'src/auth/user/user.services';
 import { RoomMessagesHelper } from './helpers/roommessages.helper';
 import { UpdateUserPositionDto } from './dtos/updateposition.dto';
+import { ToglMutDto } from './dtos/toglMute.dto';
 
 @Injectable()
 export class RoomService {
@@ -23,7 +24,7 @@ export class RoomService {
         this.logger.debug(`getRoom - ${link}`);
 
         const meet = await this._getMeet(link);
-        const objects = this.objectModel.find({ meet });
+        const objects = await this.objectModel.find({ meet });
 
         return {
             link,
@@ -45,11 +46,46 @@ export class RoomService {
         return await this.positionModel.deleteMany({clientId});
     }
 
-    async updateUserPosition(dto : UpdateUserPositionDto){
+    async updateUserPosition(clientId: string, dto : UpdateUserPositionDto){
         this.logger.debug(`listUsersPositionByLink - ${dto.link}`);
 
         const meet = await this._getMeet(dto.link);
-        const user = await this.userService.getUserById(dto.userId)
+        const user = await this.userService.getUserById(dto.userId);
+        
+        if(!user){
+            throw new BadRequestException(RoomMessagesHelper.JOIN_LINK_NOT_VALID)
+        }
+
+        const position = {
+            ...dto,
+            clientId,
+            user,
+            meet,
+            name: user.name,
+            avatar: user.avatar
+        }
+
+        const usersInRoom = await this.positionModel.find({meet});
+        const loogedUserInRoom = usersInRoom.find(u =>
+            u.user.toString() ==user._id.toString() || u.clientId === clientId);
+
+        if(loogedUserInRoom){
+            await this.positionModel.findByIdAndUpdate({_id: loogedUserInRoom._id},position);
+        }else{
+            if(usersInRoom && usersInRoom.length > 10){
+                throw new BadRequestException(RoomMessagesHelper.ROOM_MAX_USERS);
+            };
+
+            await this.positionModel.create(position);
+        }
+    }
+
+    async updateUserMute(dto:ToglMutDto){
+        this.logger.debug(`updateUserMute -${dto.link} -  ${dto.userId}`);
+
+        const meet = await this._getMeet(dto.link);
+        const user = await this.userService.getUserById(dto.userId);
+        await this.positionModel.updateMany({user, meet}, {muted: dto.muted})
     }
 
     async _getMeet(link:string){
