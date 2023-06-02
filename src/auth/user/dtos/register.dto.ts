@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, MinLength, MaxLength, Matches, IsString } from "class-validator";
+import { IsEmail, MinLength, MaxLength, Matches, IsString } from "class-validator";
 import { UserMessagesHelper } from "../helpers/messages.helper";
 
 export class RegisterDto {

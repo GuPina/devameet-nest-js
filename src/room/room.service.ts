@@ -7,10 +7,13 @@ import { Position, PositionDocument } from './Schemas/positions.schemas';
 import { UserService } from 'src/auth/user/user.services';
 import { RoomMessagesHelper } from './helpers/roommessages.helper';
 import { UpdateUserPositionDto } from './dtos/updateposition.dto';
-import { ToglMutDto } from './dtos/toglMute.dto';
+import { ToglMuteDto } from './dtos/toglMute.dto';
 
 @Injectable()
 export class RoomService {
+    deleteUsersPosition(id: any) {
+      throw new Error('Method not implemented.');
+    }
     private logger = new Logger(RoomService.name);
 
     constructor(
@@ -80,7 +83,7 @@ export class RoomService {
         }
     }
 
-    async updateUserMute(dto:ToglMutDto){
+    async updateUserMute(dto:ToglMuteDto){
         this.logger.debug(`updateUserMute -${dto.link} -  ${dto.userId}`);
 
         const meet = await this._getMeet(dto.link);

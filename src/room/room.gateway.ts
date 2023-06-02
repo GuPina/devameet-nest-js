@@ -4,7 +4,7 @@ import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { JoinRoomDto } from './dtos/joinroom.dto';
 import { UpdateUserPositionDto } from './dtos/updateposition.dto';
-import { ToglMutDto } from './dtos/toglMute.dto';
+import { ToglMuteDto } from './dtos/toglMute.dto';
 
 type activeSocketesType = {
   room:String; 
@@ -22,7 +22,20 @@ export class RoomGateway implements OnGatewayInit, OnGatewayDisconnect {
   private logger = new Logger(RoomGateway.name);
   private activeSocketes: activeSocketesType[] = []
 
-  handleDisconnect(client: any) {
+  async handleDisconnect(client: any) {
+    const existingOnSocket = this.activeSocketes.find(
+      socket => socket.id === client.id
+    );
+
+    if(!existingOnSocket) return;
+
+    this.activeSocketes = this.activeSocketes.filter(
+      socket => socket.id !== client.id
+    );
+
+    await this.service.deleteUsersPosition(client.id);
+    client.broadcast.emit(`${existingOnSocket.room}-remove-user`, {socketId: client.id})
+
     this.logger.debug(`Client: ${client.id} disconnected`);
   }
 
@@ -59,7 +72,7 @@ export class RoomGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('move')
-  async handleMove (client: Socket, payload: UpdateUserPositionDto){
+  async handleMove(client: Socket, payload: UpdateUserPositionDto) {
     const {link, userId, x, y, orientation} = payload;
     const dto = {
       link,
@@ -76,7 +89,7 @@ export class RoomGateway implements OnGatewayInit, OnGatewayDisconnect {
 
   
   @SubscribeMessage('toggl-mute-user')
-  async handleToglMute (_:Socket, payload: ToglMutDto){
+  async handleToglMute (_:Socket, payload: ToglMuteDto){
     const {link} = payload;
     await this.service.updateUserMute(payload);
     const users = await this.service.listUsersPositionByLink(link);
